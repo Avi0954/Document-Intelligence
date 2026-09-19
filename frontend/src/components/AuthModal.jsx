@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { loginUser, registerUser } from '../services/api';
 
 export function AuthModal({ onAuthSuccess }) {
@@ -6,6 +7,8 @@ export function AuthModal({ onAuthSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -97,14 +100,24 @@ export function AuthModal({ onAuthSuccess }) {
             <label className="block font-mono text-xs uppercase tracking-wider text-[#A0A0A0] mb-1">
               PASSWORD
             </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full font-mono text-xs px-3.5 py-2.5 bg-[#111111] border border-[#2D2D2D] text-[#F5F5F5] placeholder-[#707070] rounded-sm focus:outline-none focus:border-[#707070] transition-colors"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full font-mono text-xs pl-3.5 pr-10 py-2.5 bg-[#111111] border border-[#2D2D2D] text-[#F5F5F5] placeholder-[#707070] rounded-sm focus:outline-none focus:border-[#707070] transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#F5F5F5] transition-colors focus:outline-none cursor-pointer"
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           {!isLogin && (
@@ -112,14 +125,24 @@ export function AuthModal({ onAuthSuccess }) {
               <label className="block font-mono text-xs uppercase tracking-wider text-[#A0A0A0] mb-1">
                 CONFIRM PASSWORD
               </label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full font-mono text-xs px-3.5 py-2.5 bg-[#111111] border border-[#2D2D2D] text-[#F5F5F5] placeholder-[#707070] rounded-sm focus:outline-none focus:border-[#707070] transition-colors"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full font-mono text-xs pl-3.5 pr-10 py-2.5 bg-[#111111] border border-[#2D2D2D] text-[#F5F5F5] placeholder-[#707070] rounded-sm focus:outline-none focus:border-[#707070] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#F5F5F5] transition-colors focus:outline-none cursor-pointer"
+                  title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           )}
 
