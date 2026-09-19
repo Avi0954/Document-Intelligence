@@ -1,0 +1,10 @@
+SAMPLE EXAM PAPER
+
+1. What is the primary function of Python?
+A. High-level programming language
+B. Database engine
+C. Operating system
+D. Web browser
+
+OFFICIAL ANSWER KEY
+1. A. High-level programming language

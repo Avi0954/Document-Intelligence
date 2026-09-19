@@ -1,0 +1,1 @@
+Supervised learning requires labeled dataset. Unsupervised learning uncovers hidden clustering in unlabeled data. Neural networks use activation functions like ReLU.

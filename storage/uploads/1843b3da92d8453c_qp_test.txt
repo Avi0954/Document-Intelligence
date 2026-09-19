@@ -1,0 +1,3 @@
+EXAMINATION QUESTION PAPER
+1. What is Machine Learning?
+2. What is Natural Language Processing?

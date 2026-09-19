@@ -1,0 +1,3 @@
+OFFICIAL ANSWER KEY
+1. Machine Learning is a subset of AI enabling systems to learn from data.
+2. Natural Language Processing enables computers to understand human language.

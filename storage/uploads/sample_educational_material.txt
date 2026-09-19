@@ -1,0 +1,11 @@
+# Fundamentals of Artificial Intelligence and Neural Networks
+
+Artificial Intelligence (AI) is a subfield of computer science concerned with building smart machines capable of performing tasks that typically require human intelligence. Machine Learning (ML) is a subset of AI that provides systems the ability to automatically learn and improve from experience without being explicitly programmed.
+
+Supervised Learning is a type of machine learning where the algorithm is trained on a labeled dataset. The model learns a mapping function from input features to target output labels. Examples of supervised learning algorithms include Linear Regression, Logistic Regression, Support Vector Machines (SVM), and Decision Trees.
+
+Unsupervised Learning involves training algorithms on unlabeled data. The goal is to uncover hidden patterns, structures, or groupings within the dataset. Common unsupervised learning techniques include K-Means Clustering, Hierarchical Clustering, and Principal Component Analysis (PCA) for dimensionality reduction.
+
+Neural Networks are computing systems inspired by the biological neural networks that constitute animal brains. An Artificial Neural Network (ANN) consists of an input layer, one or more hidden layers, and an output layer. Neurons use activation functions such as ReLU (Rectified Linear Unit), Sigmoid, or Tanh to introduce non-linearity into the network.
+
+Deep Learning is a subset of machine learning based on artificial neural networks with multiple hidden layers. Convolutional Neural Networks (CNNs) are widely used for image processing and computer vision, while Recurrent Neural Networks (RNNs) and Transformers are commonly applied to sequential data such as natural language processing (NLP).
