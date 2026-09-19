@@ -51,6 +51,28 @@ def split_content_at_answer_key(content: str):
             return qp_part, ak_part
     return content, ""
 
+def sanitize_error_message(raw_error: str) -> str:
+    if not raw_error:
+        return "Document processing failed due to an unexpected error."
+
+    err_lower = raw_error.lower()
+    if "quota" in err_lower or "rate limit" in err_lower or "429" in err_lower or "resource_exhausted" in err_lower:
+        return "AI service rate limit or quota exceeded. Please wait a moment and click Process again."
+    if "api key" in err_lower or "api_key" in err_lower:
+        return "AI service API key configuration error. Please verify backend settings."
+    if "no readable text" in err_lower:
+        return "No readable text content could be extracted from this document."
+    if "unsupported document type" in err_lower:
+        return "Unsupported document file type."
+    if "file" in err_lower and "not found" in err_lower:
+        return "Source document file could not be retrieved from storage."
+
+    # Clean line breaks and sanitize any key patterns
+    first_line = raw_error.strip().split("\n")[0]
+    cleaned = re.sub(r"(?i)(api[_-]?key|secret|token|password)=[\w-]+", r"\1=***", first_line)
+    cleaned = re.sub(r"(?i)bearer\s+[\w.-]+", "Bearer ***", cleaned)
+    return cleaned[:200]
+
 class VirtualChunk:
     def __init__(self, content: str, page_number: int):
         self.content = content
@@ -201,19 +223,39 @@ class DocumentService:
 
             doc.question_count = total_questions
             doc.status = "COMPLETED"
+            doc.error_message = None
             db.commit()
             db.refresh(doc)
             return doc
 
         except Exception as e:
-            db.rollback()
-            doc = db.query(Document).filter(Document.id == document_id).first()
-            if doc:
-                doc.status = "FAILED"
-                doc.error_message = str(e)
-                db.commit()
-            print(f"[Pipeline Error] Failed processing document {document_id}: {str(e)}")
+            err_str = str(e)
+            safe_error = sanitize_error_message(err_str)
+
+            print(f"[Pipeline Error] Failed processing document {document_id}: {err_str}")
             traceback.print_exc()
+
+            try:
+                db.rollback()
+                doc = db.query(Document).filter(Document.id == document_id).first()
+                if doc:
+                    doc.status = "FAILED"
+                    doc.error_message = safe_error
+                    db.commit()
+            except Exception as db_err:
+                print(f"[DB Error Recording Failure] Using fallback session: {str(db_err)}")
+                try:
+                    from app.database import SessionLocal
+                    fresh_db = SessionLocal()
+                    fresh_doc = fresh_db.query(Document).filter(Document.id == document_id).first()
+                    if fresh_doc:
+                        fresh_doc.status = "FAILED"
+                        fresh_doc.error_message = safe_error
+                        fresh_db.commit()
+                    fresh_db.close()
+                except Exception as fresh_err:
+                    print(f"[Fallback DB Session Error] {str(fresh_err)}")
+
             raise e
 
     def process_document_pipeline_with_new_db_session(self, document_id: str) -> None:

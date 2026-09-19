@@ -19,7 +19,7 @@ export const StatusBadge = ({ status, errorMessage }) => {
       );
     case 'FAILED':
       return (
-        <span className="font-mono text-xs text-[#A0A0A0]" title={errorMessage || 'Processing failed'}>
+        <span className="font-mono text-xs text-[#F87171] font-semibold" title={errorMessage || 'Processing failed'}>
           ! FAILED
         </span>
       );

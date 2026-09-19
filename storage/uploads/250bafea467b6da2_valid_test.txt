@@ -1,0 +1,8 @@
+PRAGATI BHARATI ASSIGNMENT TEST
+Question 1. What is Python?
+A. Programming language
+B. Snake
+C. OS
+D. Database
+Answer: A
+Explanation: Python is a language.

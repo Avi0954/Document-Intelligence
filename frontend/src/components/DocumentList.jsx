@@ -55,6 +55,11 @@ export const DocumentList = ({
                         [Answer Key Attached]
                       </div>
                     )}
+                    {doc.status === 'FAILED' && doc.error_message && (
+                      <div className="text-[10px] font-mono text-[#F87171] mt-0.5 max-w-xs truncate" title={doc.error_message}>
+                        ! {doc.error_message}
+                      </div>
+                    )}
                   </td>
 
                   {/* Document Type */}
@@ -100,10 +105,12 @@ export const DocumentList = ({
                         className={`px-3 py-1 rounded-sm uppercase tracking-wider font-semibold transition-colors ${
                           isProcessing
                             ? 'bg-[#242424] text-[#707070] cursor-not-allowed'
+                            : doc.status === 'FAILED'
+                            ? 'bg-[#F87171] text-black hover:bg-[#ef4444]'
                             : 'bg-white text-black hover:bg-[#E5E5E5]'
                         }`}
                       >
-                        {isProcessing ? 'Processing' : (doc.status === 'COMPLETED' ? 'Reprocess' : 'Process')}
+                        {isProcessing ? 'Processing' : (doc.status === 'COMPLETED' ? 'Reprocess' : doc.status === 'FAILED' ? 'Retry' : 'Process')}
                       </button>
 
                       <button
