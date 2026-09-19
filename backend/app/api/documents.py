@@ -1,6 +1,8 @@
 import os
+import mimetypes
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -185,3 +187,33 @@ def get_document_chunks(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
     chunks = db.query(DocumentChunk).filter(DocumentChunk.document_id == document_id).order_by(DocumentChunk.chunk_index.asc()).all()
     return chunks
+
+@router.get("/{document_id}/download")
+def download_document_file(
+    document_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Download original uploaded document file for authorized owner."""
+    doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    file_path = doc.file_path
+    if not os.path.isabs(file_path):
+        file_path = os.path.abspath(file_path)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Requested file not found on disk.")
+
+    media_type, _ = mimetypes.guess_type(file_path)
+    if not media_type:
+        media_type = "application/octet-stream"
+
+    return FileResponse(
+        path=file_path,
+        filename=doc.original_name,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{doc.original_name}"'}
+    )
+

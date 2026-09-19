@@ -9,7 +9,16 @@ import { QuestionCard } from './components/QuestionCard';
 import { AddQuestionModal } from './components/AddQuestionModal';
 import { EditQuestionModal } from './components/EditQuestionModal';
 import { AssociateDocumentModal } from './components/AssociateDocumentModal';
-import { fetchDocuments, processDocument, deleteDocument, fetchDocumentQuestions, deleteQuestion, getExportUrl } from './services/api';
+import {
+  fetchDocuments,
+  processDocument,
+  deleteDocument,
+  fetchDocumentQuestions,
+  deleteQuestion,
+  downloadExport,
+  downloadOriginalDocument,
+  handleAuthenticatedDownload
+} from './services/api';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -24,6 +33,7 @@ export function App() {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [processingDocId, setProcessingDocId] = useState(null);
+  const [downloadingFormat, setDownloadingFormat] = useState(null);
 
   // Modals state
   const [chunksModalDoc, setChunksModalDoc] = useState(null);
@@ -162,6 +172,23 @@ export function App() {
       await loadDocuments();
     } catch (err) {
       setErrorBanner('Failed to delete question.');
+    }
+  };
+
+  const handleExportDownload = async (format) => {
+    if (!selectedDocId) return;
+    setDownloadingFormat(format);
+    setErrorBanner(null);
+    try {
+      const docName = selectedDocument?.original_name || 'export';
+      const cleanName = docName.includes('.') ? docName.substring(0, docName.lastIndexOf('.')) : docName;
+      const fallbackName = `${cleanName}_questions.${format}`;
+      await handleAuthenticatedDownload(downloadExport(selectedDocId, format), fallbackName);
+    } catch (err) {
+      console.error('Export download failed:', err);
+      setErrorBanner(`Failed to download ${format.toUpperCase()} export. Please try again.`);
+    } finally {
+      setDownloadingFormat(null);
     }
   };
 
@@ -325,20 +352,20 @@ export function App() {
               </div>
 
               <div className="flex items-center gap-3 font-mono text-xs">
-                <a
-                  href={getExportUrl(selectedDocId, 'json')}
-                  download
-                  className="px-4 py-2.5 rounded-sm bg-white hover:bg-[#E5E5E5] text-black font-semibold uppercase tracking-wider transition-colors"
+                <button
+                  onClick={() => handleExportDownload('json')}
+                  disabled={downloadingFormat === 'json'}
+                  className="px-4 py-2.5 rounded-sm bg-white hover:bg-[#E5E5E5] text-black font-semibold uppercase tracking-wider transition-colors disabled:opacity-50"
                 >
-                  EXPORT JSON
-                </a>
-                <a
-                  href={getExportUrl(selectedDocId, 'csv')}
-                  download
-                  className="px-4 py-2.5 rounded-sm bg-[#151515] hover:bg-[#1C1C1C] text-[#F5F5F5] font-semibold border border-[#2D2D2D] uppercase tracking-wider transition-colors"
+                  {downloadingFormat === 'json' ? 'DOWNLOADING...' : 'EXPORT JSON'}
+                </button>
+                <button
+                  onClick={() => handleExportDownload('csv')}
+                  disabled={downloadingFormat === 'csv'}
+                  className="px-4 py-2.5 rounded-sm bg-[#151515] hover:bg-[#1C1C1C] text-[#F5F5F5] font-semibold border border-[#2D2D2D] uppercase tracking-wider transition-colors disabled:opacity-50"
                 >
-                  EXPORT CSV
-                </a>
+                  {downloadingFormat === 'csv' ? 'DOWNLOADING...' : 'EXPORT CSV'}
+                </button>
               </div>
             </div>
           </div>

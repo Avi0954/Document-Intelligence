@@ -100,4 +100,45 @@ export const getExportUrl = (documentId, format = 'json') => {
   return `${API_BASE_URL}/documents/${documentId}/export?format=${format}`;
 };
 
+export const downloadExport = async (documentId, format = 'json') => {
+  const response = await api.get(`/documents/${documentId}/export`, {
+    params: { format },
+    responseType: 'blob',
+  });
+  return response;
+};
+
+export const downloadOriginalDocument = async (documentId) => {
+  const response = await api.get(`/documents/${documentId}/download`, {
+    responseType: 'blob',
+  });
+  return response;
+};
+
+export const triggerBlobDownload = (blobData, filename) => {
+  const blob = new Blob([blobData]);
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
+export const handleAuthenticatedDownload = async (downloadPromise, fallbackFilename) => {
+  const response = await downloadPromise;
+  let filename = fallbackFilename;
+  const contentDisposition = response.headers['content-disposition'] || response.headers['Content-Disposition'];
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="?([^";]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+  triggerBlobDownload(response.data, filename);
+};
+
 export default api;
+

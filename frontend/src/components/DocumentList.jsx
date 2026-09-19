@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusBadge } from './StatusBadge';
+import { downloadOriginalDocument, handleAuthenticatedDownload } from '../services/api';
 
 export const DocumentList = ({
   documents,
@@ -11,6 +12,21 @@ export const DocumentList = ({
   onAssociateDoc,
   processingDocId
 }) => {
+  const [downloadingDocId, setDownloadingDocId] = useState(null);
+
+  const handleDownloadOriginal = async (e, doc) => {
+    e.stopPropagation();
+    setDownloadingDocId(doc.id);
+    try {
+      await handleAuthenticatedDownload(downloadOriginalDocument(doc.id), doc.original_name);
+    } catch (err) {
+      console.error('Download original failed:', err);
+      alert('Failed to download document file. File might not exist or access was denied.');
+    } finally {
+      setDownloadingDocId(null);
+    }
+  };
+
   if (documents.length === 0) {
     return (
       <div className="bg-[#111111] rounded-sm border border-[#242424] p-8 text-center text-[#707070] font-mono text-xs">
@@ -90,6 +106,15 @@ export const DocumentList = ({
                           View Content
                         </button>
                       )}
+
+                      <button
+                        onClick={(e) => handleDownloadOriginal(e, doc)}
+                        disabled={downloadingDocId === doc.id}
+                        className="px-2.5 py-1 rounded-sm text-[#A0A0A0] hover:text-white border border-[#2D2D2D] bg-[#151515] hover:bg-[#1C1C1C] transition-colors uppercase tracking-wider disabled:opacity-50"
+                        title="Download Original File"
+                      >
+                        {downloadingDocId === doc.id ? 'Downloading...' : 'Download File'}
+                      </button>
 
                       <button
                         onClick={() => onAssociateDoc(doc)}
