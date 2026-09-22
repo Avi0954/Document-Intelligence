@@ -65,13 +65,15 @@ class GeminiLLMService(BaseLLMService):
         primary_model = self._get_active_model_name()
 
         candidate_models = [primary_model]
-        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]:
+        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 
         last_error = None
 
         for model_name in candidate_models:
+            if model_name in ["gemini-3.6-flash", "gemini-1.5-pro"]:
+                continue
             try:
                 response = client.models.generate_content(
                     model=model_name,

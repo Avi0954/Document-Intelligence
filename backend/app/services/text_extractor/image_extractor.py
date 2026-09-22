@@ -58,6 +58,8 @@ class ImageExtractor(BaseTextExtractor):
         last_err = None
 
         for model_name in candidate_models:
+            if model_name in ["gemini-3.6-flash", "gemini-1.5-pro"]:
+                continue
             try:
                 response = client.models.generate_content(
                     model=model_name,
