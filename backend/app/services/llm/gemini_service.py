@@ -65,60 +65,42 @@ class GeminiLLMService(BaseLLMService):
         primary_model = self._get_active_model_name()
 
         candidate_models = [primary_model]
-        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]:
+        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 
-        max_retries = 3
         last_error = None
 
         for model_name in candidate_models:
-            for attempt in range(max_retries):
-                try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            system_instruction=QUESTION_EXTRACTION_SYSTEM_PROMPT,
-                            response_mime_type="application/json",
-                            response_schema=LLMQuestionResponse,
-                            temperature=0.2,
-                        )
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=QUESTION_EXTRACTION_SYSTEM_PROMPT,
+                        response_mime_type="application/json",
+                        response_schema=LLMQuestionResponse,
+                        temperature=0.2,
                     )
+                )
 
-                    if hasattr(response, "parsed") and response.parsed is not None:
-                        parsed_data = response.parsed
-                        if isinstance(parsed_data, LLMQuestionResponse):
-                            return parsed_data
-                        elif isinstance(parsed_data, dict):
-                            return LLMQuestionResponse.model_validate(parsed_data)
+                if hasattr(response, "parsed") and response.parsed is not None:
+                    parsed_data = response.parsed
+                    if isinstance(parsed_data, LLMQuestionResponse):
+                        return parsed_data
+                    elif isinstance(parsed_data, dict):
+                        return LLMQuestionResponse.model_validate(parsed_data)
 
-                    if hasattr(response, "text") and response.text:
-                        return LLMQuestionResponse.model_validate_json(response.text)
+                if hasattr(response, "text") and response.text:
+                    return LLMQuestionResponse.model_validate_json(response.text)
 
-                except Exception as api_err:
-                    last_error = api_err
-                    full_err_str = (str(api_err) + " " + str(getattr(api_err, "message", "")) + " " + repr(api_err)).lower()
-                    if "404" in full_err_str or "not found" in full_err_str:
-                        break  # Try next model
-                    
-                    if "503" in full_err_str or "429" in full_err_str or "high demand" in full_err_str or "unavailable" in full_err_str or "quota" in full_err_str or "resource_exhausted" in full_err_str:
-                        if attempt < max_retries - 1:
-                            match = re.search(r"retry in (\d+(\.\d+)?)s", full_err_str)
-                            if match:
-                                sleep_secs = float(match.group(1)) + 3.0
-                            else:
-                                sleep_secs = 20.0
-                            print(f"[Gemini Rate Limit] Waiting {sleep_secs:.1f}s for quota reset (attempt {attempt+1}/{max_retries})...")
-                            time.sleep(sleep_secs)
-                            continue
-                        else:
-                            break  # Try next model candidate if retries exhausted
+            except Exception as api_err:
+                last_error = api_err
+                err_msg = getattr(api_err, "message", str(api_err))
+                print(f"[Gemini Failover] Model '{model_name}' unavailable/overloaded ({err_msg[:80]}). Switching to next model...")
+                continue
 
-                    # Non-retryable error
-                    raise ValueError(f"Gemini API error: {getattr(api_err, 'message', str(api_err))}")
-
-        err_detail = getattr(last_error, "message", str(last_error)) if last_error else "High demand or rate limit reached."
+        err_detail = getattr(last_error, "message", str(last_error)) if last_error else "All Gemini models currently experiencing high demand. Please try again in a moment."
         raise ValueError(f"Gemini API error: {err_detail}")
 
 gemini_llm_service = GeminiLLMService()
