@@ -31,7 +31,7 @@ class GeminiLLMService(BaseLLMService):
         return key.strip()
 
     def _get_active_model_name(self) -> str:
-        model = os.environ.get("GEMINI_MODEL") or settings.GEMINI_MODEL or "gemini-2.5-flash"
+        model = os.environ.get("GEMINI_MODEL") or settings.GEMINI_MODEL or "gemini-3.6-flash"
         return model.strip()
 
     def is_configured(self) -> bool:
@@ -65,15 +65,13 @@ class GeminiLLMService(BaseLLMService):
         primary_model = self._get_active_model_name()
 
         candidate_models = [primary_model]
-        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]:
+        for fallback in ["gemini-3.6-flash", "gemini-3-flash-preview", "gemini-3.1-flash-lite"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 
         last_error = None
 
         for model_name in candidate_models:
-            if model_name in ["gemini-3.6-flash", "gemini-1.5-pro"]:
-                continue
             try:
                 response = client.models.generate_content(
                     model=model_name,
