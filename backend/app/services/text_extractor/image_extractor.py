@@ -17,7 +17,7 @@ class ImageExtractor(BaseTextExtractor):
         return key.strip()
 
     def _get_active_model_name(self) -> str:
-        model = os.environ.get("GEMINI_MODEL") or settings.GEMINI_MODEL or "gemini-3.6-flash"
+        model = os.environ.get("GEMINI_MODEL") or settings.GEMINI_MODEL or "gemini-2.5-flash"
         return model.strip()
 
     def extract(self, file_path: str) -> List[ExtractedChunk]:
@@ -42,7 +42,11 @@ class ImageExtractor(BaseTextExtractor):
             raise ValueError("Gemini API key is required to process image files.")
 
         client = genai.Client(api_key=key)
-        model_name = self._get_active_model_name()
+        primary_model = self._get_active_model_name()
+        candidate_models = [primary_model]
+        for fallback in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
 
         prompt = (
             "Extract all readable text, statements, formulas, lists, diagrams, and educational information "
@@ -51,30 +55,35 @@ class ImageExtractor(BaseTextExtractor):
         )
 
         image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+        last_err = None
 
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=[image_part, prompt],
-                config=types.GenerateContentConfig(
-                    temperature=0.1
+        for model_name in candidate_models:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[image_part, prompt],
+                    config=types.GenerateContentConfig(
+                        temperature=0.1
+                    )
                 )
-            )
 
-            extracted_text = (response.text or "").strip()
-            if not extracted_text:
-                raise ValueError("No readable text could be extracted from the uploaded image.")
+                extracted_text = (response.text or "").strip()
+                if not extracted_text:
+                    raise ValueError("No readable text could be extracted from the uploaded image.")
 
-            return [
-                ExtractedChunk(
-                    chunk_index=0,
-                    page_number=1,
-                    content=extracted_text
-                )
-            ]
+                return [
+                    ExtractedChunk(
+                        chunk_index=0,
+                        page_number=1,
+                        content=extracted_text
+                    )
+                ]
 
-        except Exception as e:
-            raise ValueError(f"Image extraction via Gemini Vision failed: {str(e)}")
+            except Exception as e:
+                last_err = e
+                continue
+
+        raise ValueError(f"Image extraction via Gemini Vision failed: {str(last_err)}")
 
     def extract_chunks(self, file_path: str) -> List[ExtractedChunk]:
         return self.extract(file_path)
