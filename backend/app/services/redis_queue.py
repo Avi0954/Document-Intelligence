@@ -13,11 +13,17 @@ class RedisQueueService:
     def client(self) -> Optional[redis.Redis]:
         if self._redis_client is None:
             try:
-                self._redis_client = redis.Redis.from_url(
-                    settings.REDIS_URL,
-                    decode_responses=True,
-                    socket_connect_timeout=2
-                )
+                url = settings.REDIS_URL or "redis://localhost:6379/0"
+                kwargs = {
+                    "decode_responses": True,
+                    "socket_connect_timeout": 5,
+                    "socket_timeout": 5,
+                    "retry_on_timeout": True
+                }
+                if url.startswith("rediss://"):
+                    kwargs["ssl_cert_reqs"] = None
+
+                self._redis_client = redis.Redis.from_url(url, **kwargs)
             except Exception as e:
                 logger.warning(f"Failed to initialize Redis client: {str(e)}")
                 self._redis_client = None
@@ -27,10 +33,11 @@ class RedisQueueService:
         """Check if Redis connection is active."""
         try:
             c = self.client
-            if c:
-                return c.ping()
-        except Exception:
-            pass
+            if c and c.ping():
+                return True
+        except Exception as e:
+            logger.debug(f"Redis ping failed: {str(e)}")
+            self._redis_client = None
         return False
 
     def enqueue_document_processing(self, document_id: str) -> bool:
@@ -42,7 +49,8 @@ class RedisQueueService:
                 logger.info(f"Enqueued document {document_id} to Redis queue 'docu_intel:jobs'.")
                 return True
         except Exception as e:
-            logger.warning(f"Could not enqueue job to Redis: {str(e)}")
+            logger.warning(f"Could not enqueue job to Redis ({str(e)}). Resetting client connection.")
+            self._redis_client = None
         return False
 
     def dequeue_document_processing(self, timeout: int = 2) -> Optional[str]:
@@ -55,7 +63,9 @@ class RedisQueueService:
                     # res is a tuple: (queue_name, value)
                     return res[1]
         except Exception as e:
-            logger.warning(f"Redis dequeue error: {str(e)}")
+            logger.warning(f"Redis dequeue error ({str(e)}). Resetting client connection.")
+            self._redis_client = None
         return None
 
 redis_queue_service = RedisQueueService()
+
